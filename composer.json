@@ -1,0 +1,18 @@
+{
+    "description": "",
+    "type": "neos-plugin",
+    "name": "sitegeist/babbylon",
+    "require": {
+        "neos/flow": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sitegeist\\Babbylon\\": "Classes/"
+        }
+    },
+    "extra": {
+        "neos": {
+            "package-key": "Sitegeist.Babbylon"
+        }
+    }
+}
