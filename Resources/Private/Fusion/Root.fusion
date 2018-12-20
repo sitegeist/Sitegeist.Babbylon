@@ -1,0 +1,186 @@
+babbylon =  Neos.Neos:Page {
+    head {
+        stylesheets.main = Neos.Fusion:Tag {
+            tagName = 'style'
+            content = '
+
+.content__missing {
+    color:red;
+}
+.content__addition {
+    color:green;
+}
+.content__translated {
+    color:blue;
+}
+            '
+        }
+
+    }
+
+    bodyTag.attributes.class = 'neos-raw-content-mode'
+
+    body = Neos.Fusion:Value {
+        value = Neos.Fusion:Array {
+            @context.currentLanguagePreset = ${documentNode.context.targetDimensions.language}
+
+            title = Neos.Fusion:Tag {
+                tagName = 'h1'
+                content = ${q(documentNode).property('title') + ' - ' + Configuration.setting('Neos.ContentRepository.contentDimensions.language.presets.' + currentLanguagePreset + '.label') }
+            }
+
+            contentCollections = Neos.Fusion:Collection {
+                @context.languagDimensionValues = ${Configuration.setting('Neos.ContentRepository.contentDimensions.language.presets')}
+
+                collection = ${q(documentNode).children('[instanceof Neos.Neos:ContentCollection]').get()}
+                itemName = 'collection'
+                itemRenderer = Neos.Fusion:Array {
+                    title = Neos.Fusion:Tag {
+                        tagName = 'h2'
+                        content = ${q(collection).property('_label')}
+                    }
+
+                    contents = Neos.Fusion:Tag {
+                        tagName = 'table'
+                        attributes.border = 1
+                        content = Neos.Fusion:Array {
+                            header = Neos.Fusion:Tag {
+                                tagName = 'thead'
+                                content = Neos.Fusion:Tag {
+                                    tagName = 'tr'
+                                    content = Neos.Fusion:Collection {
+                                        collection = ${languagDimensionValues}
+                                        itemKey = 'presetKey'
+                                        itemName = 'languagePreset'
+                                        itemRenderer = Neos.Fusion:Tag {
+                                            @context.documentNodeTranslated = ${q(documentNode).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get(0)}
+
+                                            tagName = 'th'
+                                            content = ${languagePreset.label}
+                                            content.@process.markCurrent = ${'<b> -- ' + value + ' -- </b>'}
+                                            content.@process.markCurrent.@if.isCurrent = ${presetKey == currentLanguagePreset}
+                                            content.@process.link = Neos.Fusion:Array {
+                                                @if.has = ${documentNodeTranslated}
+                                                link = Neos.Fusion:Tag {
+                                                    tagName = 'a'
+                                                    attributes.href = Neos.Neos:NodeUri {
+                                                        node = ${documentNodeTranslated}
+                                                    }
+                                                    content = ${value}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            body = Neos.Fusion:Tag {
+                                tagName = 'tbody'
+                                content = Neos.Fusion:Tag {
+                                    tagName = 'tr'
+                                    content = Neos.Fusion:Collection {
+                                        collection = ${languagDimensionValues}
+                                        itemKey = 'presetKey'
+                                        itemName = 'languagePreset'
+                                        itemRenderer = Neos.Fusion:Tag {
+                                            @context.documentNodeTranslated = ${q(documentNode).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get(0)}
+                                            tagName = 'td'
+                                            content = Neos.Fusion:Case {
+                                                @context.currentContents = ${q(documentNode).children(collection.name).children('[instanceof Neos.Neos:Content]').get()}
+                                                @context.translatedCollection = ${q(documentNodeTranslated).children(collection.name).get(0)}
+                                                @context.translatedContents = ${q(documentNodeTranslated).children(collection.name).children('[instanceof Neos.Neos:Content]').get()}
+                                                current {
+                                                    condition = ${presetKey == currentLanguagePreset}
+                                                    renderer = Neos.Fusion:Tag {
+                                                        tagName = 'ul'
+                                                        content = Neos.Fusion:Collection {
+                                                            collection = ${currentContents}
+                                                            itemRenderer = ${'<li><b>' + q(item).property('_label') + '</b></li>'}
+                                                        }
+                                                    }
+                                                }
+
+                                                missing {
+                                                    condition = ${!documentNodeTranslated}
+                                                    renderer = 'not translated yet'
+                                                }
+
+                                                translated {
+                                                    condition = ${documentNodeTranslated && presetKey != currentLanguagePreset}
+                                                    renderer = Neos.Fusion:Tag {
+                                                        @if.has = ${documentNodeTranslated}
+                                                        @context.comparedContentCollections = ${Sitegeist.Babbylon.Content.compareContentCollections(currentContents, translatedContents)}
+                                                        tagName = 'ul'
+                                                        content = Neos.Fusion:Collection {
+                                                            collection = ${comparedContentCollections}
+                                                            itemRenderer = Neos.Fusion:Tag {
+                                                                tagName = 'li'
+                                                                attributes.class = ${'content content__' + item.status}
+                                                                content = Neos.Fusion:Array {
+                                                                    label = ${q(item.node).property('_label') + ' '}
+                                                                    link = Neos.Fusion:Tag {
+                                                                        @if.has = ${item.status == "missing"}
+                                                                        tagName = 'form'
+                                                                        attributes {
+                                                                            action = Neos.Fusion:UriBuilder {
+                                                                                controller = 'Node'
+                                                                                action = 'translateContent'
+                                                                                package = 'Sitegeist.Babbylon'
+                                                                                format = 'html'
+                                                                            }
+                                                                            method = 'post'
+                                                                        }
+
+                                                                        content = Neos.Fusion:Array {
+                                                                            __csrfToken = Neos.Fusion:Tag {
+                                                                                tagName = 'input'
+                                                                                attributes.type = 'hidden'
+                                                                                attributes.name = '__csrfToken'
+                                                                                attributes.value = ${Sitegeist.Babbylon.Security.getCsrfToken()}
+                                                                            }
+
+
+                                                                            contentNode = Neos.Fusion:Tag {
+                                                                                tagName = 'input'
+                                                                                attributes.type = 'hidden'
+                                                                                attributes.name = 'contentNode'
+                                                                                attributes.value = ${item.node.contextPath}
+                                                                            }
+
+                                                                            targetCollection = Neos.Fusion:Tag {
+                                                                                tagName = 'input'
+                                                                                attributes.type = 'hidden'
+                                                                                attributes.name = 'targetCollection'
+                                                                                attributes.value = ${translatedCollection.contextPath}
+                                                                            }
+
+                                                                            targetDocument = Neos.Fusion:Tag {
+                                                                                tagName = 'input'
+                                                                                attributes.type = 'hidden'
+                                                                                attributes.name = 'targetDocument'
+                                                                                attributes.value = ${documentNodeTranslated.contextPath}
+                                                                            }
+
+                                                                            btn = Neos.Fusion:Tag {
+                                                                                tagName = 'button'
+                                                                                content = "translate"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

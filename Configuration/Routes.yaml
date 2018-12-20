@@ -1,0 +1,9 @@
+-
+  name: 'Nodes - Translate contents'
+  uriPattern: 'babbylon/node/{@action}'
+  methods: ['POST']
+  defaults:
+    '@package': 'Sitegeist.Babbylon'
+    '@controller': 'Node'
+    '@format': 'html'
+  appendExceedingArguments: true

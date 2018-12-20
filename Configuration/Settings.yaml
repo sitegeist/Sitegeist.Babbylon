@@ -1,0 +1,34 @@
+Neos:
+  Neos:
+    fusion:
+      autoInclude:
+        Sitegeist.Babbylon: true
+    userInterface:
+      editPreviewModes:
+        babbylon:
+          isEditingMode: true
+          isPreviewMode: false
+          fusionRenderingPath: 'babbylon'
+          title: "Babbylon"
+          position: 150
+  Fusion:
+    defaultContext:
+      Sitegeist.Babbylon.Array: \Sitegeist\Babbylon\Eel\ArrayHelper
+      Sitegeist.Babbylon.Content: \Sitegeist\Babbylon\Eel\ContentHelper
+      Sitegeist.Babbylon.Security: \Sitegeist\Babbylon\Eel\SecurityHelper
+
+  Flow:
+    mvc:
+      routes:
+        Sitegeist.Babbylon:
+          position: 'before Neos.Neos'
+
+    security:
+      authentication:
+        providers:
+          'Neos.Neos:Backend':
+            requestPatterns:
+              'Sitegeist.Babbylon:Controllers':
+                pattern: 'ControllerObjectName'
+                patternOptions:
+                  controllerObjectNamePattern: 'Sitegeist\Babbylon\Controller\.*'

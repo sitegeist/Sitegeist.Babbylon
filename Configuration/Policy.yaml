@@ -1,0 +1,11 @@
+privilegeTargets:
+  'Neos\Flow\Security\Authorization\Privilege\Method\MethodPrivilege':
+    'Sitegeist.Babbylon:NodeControllerActions':
+      matcher: 'method(Sitegeist\Babbylon\Controller\NodeController->(.*)Action())'
+
+roles:
+  'Neos.Neos:AbstractEditor':
+    privileges:
+      -
+        privilegeTarget: 'Sitegeist.Babbylon:NodeControllerActions'
+        permission: GRANT
