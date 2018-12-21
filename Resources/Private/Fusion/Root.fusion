@@ -3,9 +3,18 @@ babbylon =  Neos.Neos:Page {
         stylesheets.main = Neos.Fusion:Tag {
             tagName = 'style'
             content = '
+.column__current {
+    background-color: #ccc;
+}
 
+.content__current {
+    font-weight: bold;
+}
 .content__missing {
     color:red;
+}
+.content__fallback {
+    color:orange;
 }
 .content__addition {
     color:green;
@@ -20,158 +29,77 @@ babbylon =  Neos.Neos:Page {
 
     bodyTag.attributes.class = 'neos-raw-content-mode'
 
-    body = Neos.Fusion:Value {
-        value = Neos.Fusion:Array {
+    body = Neos.Fusion:Tag {
+        content = Neos.Fusion:Array {
             @context.currentLanguagePreset = ${documentNode.context.targetDimensions.language}
+            @context.languagDimensionPresets = ${Configuration.setting('Neos.ContentRepository.contentDimensions.language.presets')}
+            @context.contentCollections = ${q(documentNode).children('[instanceof Neos.Neos:ContentCollection]').get()}
 
             title = Neos.Fusion:Tag {
                 tagName = 'h1'
                 content = ${q(documentNode).property('title') + ' - ' + Configuration.setting('Neos.ContentRepository.contentDimensions.language.presets.' + currentLanguagePreset + '.label') }
             }
 
-            contentCollections = Neos.Fusion:Collection {
-                @context.languagDimensionValues = ${Configuration.setting('Neos.ContentRepository.contentDimensions.language.presets')}
-
-                collection = ${q(documentNode).children('[instanceof Neos.Neos:ContentCollection]').get()}
-                itemName = 'collection'
-                itemRenderer = Neos.Fusion:Array {
-                    title = Neos.Fusion:Tag {
-                        tagName = 'h2'
-                        content = ${q(collection).property('_label')}
-                    }
-
-                    contents = Neos.Fusion:Tag {
-                        tagName = 'table'
-                        attributes.border = 1
-                        content = Neos.Fusion:Array {
-                            header = Neos.Fusion:Tag {
-                                tagName = 'thead'
-                                content = Neos.Fusion:Tag {
-                                    tagName = 'tr'
-                                    content = Neos.Fusion:Collection {
-                                        collection = ${languagDimensionValues}
-                                        itemKey = 'presetKey'
-                                        itemName = 'languagePreset'
-                                        itemRenderer = Neos.Fusion:Tag {
-                                            @context.documentNodeTranslated = ${q(documentNode).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get(0)}
-
-                                            tagName = 'th'
-                                            content = ${languagePreset.label}
-                                            content.@process.markCurrent = ${'<b> -- ' + value + ' -- </b>'}
-                                            content.@process.markCurrent.@if.isCurrent = ${presetKey == currentLanguagePreset}
-                                            content.@process.link = Neos.Fusion:Array {
-                                                @if.has = ${documentNodeTranslated}
-                                                link = Neos.Fusion:Tag {
-                                                    tagName = 'a'
-                                                    attributes.href = Neos.Neos:NodeUri {
-                                                        node = ${documentNodeTranslated}
-                                                    }
-                                                    content = ${value}
-                                                }
+            table =  Neos.Fusion:Tag {
+                tagName = 'table'
+                attributes.border = 1
+                content = Neos.Fusion:Array {
+                    thead = Neos.Fusion:Tag {
+                        tagName = 'thead'
+                        content = Neos.Fusion:Tag {
+                            tagName = 'tr'
+                            content = Neos.Fusion:Collection {
+                                collection = ${languagDimensionPresets}
+                                itemKey = 'languagePresetKey'
+                                itemName = 'languagePreset'
+                                itemRenderer = Neos.Fusion:Tag {
+                                    @context.documentNodeTranslated = ${q(documentNode).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': languagePresetKey}}).get(0)}
+                                    tagName = 'th'
+                                    attributes.class = ${(languagePresetKey == currentLanguagePreset) ? 'column column__current' : 'column'}
+                                    content = ${languagePreset.label}
+                                    content.@process.link = Neos.Fusion:Array {
+                                        @if.has = ${documentNodeTranslated}
+                                        link = Neos.Fusion:Tag {
+                                            tagName = 'a'
+                                            attributes.href = Neos.Neos:NodeUri {
+                                                node = ${documentNodeTranslated}
                                             }
+                                            content = ${value}
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
 
-                            body = Neos.Fusion:Tag {
-                                tagName = 'tbody'
-                                content = Neos.Fusion:Tag {
+                    tbody = Neos.Fusion:Tag {
+                        tagName = 'tbody'
+                        content = Neos.Fusion:Collection {
+                            collection = ${contentCollections}
+                            itemName = 'collection'
+                            itemRenderer = Neos.Fusion:Array {
+                                head = afx`
+                                    <tr><th colspan={Array.length(languagDimensionPresets)}>{q(collection).property('_label')}</th></tr>
+                                `
+                                body = Neos.Fusion:Tag {
                                     tagName = 'tr'
                                     content = Neos.Fusion:Collection {
-                                        collection = ${languagDimensionValues}
+                                        collection = ${languagDimensionPresets}
                                         itemKey = 'presetKey'
                                         itemName = 'languagePreset'
                                         itemRenderer = Neos.Fusion:Tag {
-                                            @context.documentNodeTranslated = ${q(documentNode).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get(0)}
                                             tagName = 'td'
-                                            content = Neos.Fusion:Case {
-                                                @context.currentContents = ${q(documentNode).children(collection.name).children('[instanceof Neos.Neos:Content]').get()}
-                                                @context.translatedCollection = ${q(documentNodeTranslated).children(collection.name).get(0)}
-                                                @context.translatedContents = ${q(documentNodeTranslated).children(collection.name).children('[instanceof Neos.Neos:Content]').get()}
-                                                current {
-                                                    condition = ${presetKey == currentLanguagePreset}
-                                                    renderer = Neos.Fusion:Tag {
-                                                        tagName = 'ul'
-                                                        content = Neos.Fusion:Collection {
-                                                            collection = ${currentContents}
-                                                            itemRenderer = ${'<li><b>' + q(item).property('_label') + '</b></li>'}
-                                                        }
-                                                    }
-                                                }
+                                            attributes.class = ${(presetKey == currentLanguagePreset) ? 'column column__current' : 'column'}
+                                            content = Sitgeist.Babbylon:ContentCollectionOverview {
+                                                documentNodeReference = ${documentNode}
+                                                documentNodeTarget = ${documentNode}
+                                                documentNodeTarget.@process.translate = ${q(value).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get()}
+                                                documentNodeTarget.@process.translate.@if.isTranslated = ${presetKey != currentLanguagePreset}
 
-                                                missing {
-                                                    condition = ${!documentNodeTranslated}
-                                                    renderer = 'not translated yet'
-                                                }
-
-                                                translated {
-                                                    condition = ${documentNodeTranslated && presetKey != currentLanguagePreset}
-                                                    renderer = Neos.Fusion:Tag {
-                                                        @if.has = ${documentNodeTranslated}
-                                                        @context.comparedContentCollections = ${Sitegeist.Babbylon.Content.compareContentCollections(currentContents, translatedContents)}
-                                                        tagName = 'ul'
-                                                        content = Neos.Fusion:Collection {
-                                                            collection = ${comparedContentCollections}
-                                                            itemRenderer = Neos.Fusion:Tag {
-                                                                tagName = 'li'
-                                                                attributes.class = ${'content content__' + item.status}
-                                                                content = Neos.Fusion:Array {
-                                                                    label = ${q(item.node).property('_label') + ' '}
-                                                                    link = Neos.Fusion:Tag {
-                                                                        @if.has = ${item.status == "missing"}
-                                                                        tagName = 'form'
-                                                                        attributes {
-                                                                            action = Neos.Fusion:UriBuilder {
-                                                                                controller = 'Node'
-                                                                                action = 'translateContent'
-                                                                                package = 'Sitegeist.Babbylon'
-                                                                                format = 'html'
-                                                                            }
-                                                                            method = 'post'
-                                                                        }
-
-                                                                        content = Neos.Fusion:Array {
-                                                                            __csrfToken = Neos.Fusion:Tag {
-                                                                                tagName = 'input'
-                                                                                attributes.type = 'hidden'
-                                                                                attributes.name = '__csrfToken'
-                                                                                attributes.value = ${Sitegeist.Babbylon.Security.getCsrfToken()}
-                                                                            }
-
-
-                                                                            contentNode = Neos.Fusion:Tag {
-                                                                                tagName = 'input'
-                                                                                attributes.type = 'hidden'
-                                                                                attributes.name = 'contentNode'
-                                                                                attributes.value = ${item.node.contextPath}
-                                                                            }
-
-                                                                            targetCollection = Neos.Fusion:Tag {
-                                                                                tagName = 'input'
-                                                                                attributes.type = 'hidden'
-                                                                                attributes.name = 'targetCollection'
-                                                                                attributes.value = ${translatedCollection.contextPath}
-                                                                            }
-
-                                                                            targetDocument = Neos.Fusion:Tag {
-                                                                                tagName = 'input'
-                                                                                attributes.type = 'hidden'
-                                                                                attributes.name = 'targetDocument'
-                                                                                attributes.value = ${documentNodeTranslated.contextPath}
-                                                                            }
-
-                                                                            btn = Neos.Fusion:Tag {
-                                                                                tagName = 'button'
-                                                                                content = "translate"
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                                contentCollectionReference = ${collection}
+                                                contentCollectionTarget = ${collection}
+                                                contentCollectionTarget.@process.translate = ${q(value).context({'dimensions': {'language':  languagePreset.values}, 'targetDimensions': {'language': presetKey}}).get()}
+                                                contentCollectionTarget.@process.translate.@if.isTranslated = ${presetKey != currentLanguagePreset}
                                             }
                                         }
                                     }
@@ -183,4 +111,136 @@ babbylon =  Neos.Neos:Page {
             }
         }
     }
+}
+
+
+prototype(Sitgeist.Babbylon:ContentCollectionOverview) < prototype(Neos.Fusion:Component) {
+    documentNodeReference = null
+    documentNodeTarget = null
+
+    contentCollectionReference = null
+    contentCollectionTarget = null
+
+    renderer = Neos.Fusion:Array {
+        @context.referenceContents = ${props.contentCollectionReference ? q(props.contentCollectionReference).children('[instanceof Neos.Neos:Content],[instanceof Neos.Neos:ContentCollection]').get() : []}
+        @context.targetContents = ${props.contentCollectionTarget ? q(props.contentCollectionTarget).children('[instanceof Neos.Neos:Content],[instanceof Neos.Neos:ContentCollection]').get() : []}
+
+        content = Neos.Fusion:Case {
+            current {
+                condition = ${props.contentCollectionTarget && props.contentCollectionTarget == props.contentCollectionReference}
+                renderer = Neos.Fusion:Tag {
+                    tagName = 'ul'
+                    content = Neos.Fusion:Collection {
+                        collection = ${referenceContents}
+                        itemName = 'item'
+                        itemRenderer = Neos.Fusion:Tag {
+                            tagName = 'li'
+                            attributes.class = ${'content content__current'}
+                            content = Neos.Fusion:Array {
+                                label = ${q(item).property('_label')}
+                                label.@process.contentElementWrapping = Neos.Neos:ContentElementWrapping {
+                                    node = ${item}
+                                }
+                                children = Sitgeist.Babbylon:ContentCollectionOverview {
+                                    documentNodeReference = ${props.documentNodeReference}
+                                    documentNodeTarget = ${props.documentNodeTarget}
+
+                                    contentCollectionReference = ${item}
+                                    contentCollectionTarget = ${item}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            translation {
+                condition = ${props.contentCollectionTarget && props.contentCollectionTarget != props.contentCollectionReference}
+                renderer = Neos.Fusion:Tag {
+                    tagName = 'ul'
+                    content = Neos.Fusion:Collection {
+                        collection = ${Sitegeist.Babbylon.Content.compareContentCollections(referenceContents, targetContents)}
+
+                        itemName = 'item'
+                        itemRenderer = Neos.Fusion:Tag {
+                            tagName = 'li'
+                            attributes.class = ${'content content__' + item.status}
+
+                            content = Neos.Fusion:Array {
+                                label = ${q(item.node).property('_label')}
+                                label.@process.contentElementWrapping = Neos.Neos:ContentElementWrapping {
+                                    node = ${item.node}
+                                }
+
+                                translate = Neos.Fusion:Tag {
+                                    @if.has = ${item.status == "missing" || item.status == "fallback"}
+                                    tagName = 'form'
+                                    attributes {
+                                        action = Neos.Fusion:UriBuilder {
+                                            controller = 'Node'
+                                            action = 'translateContent'
+                                            package = 'Sitegeist.Babbylon'
+                                            format = 'html'
+                                        }
+                                        method = 'post'
+                                    }
+
+                                    content = Neos.Fusion:Array {
+                                        __csrfToken = Neos.Fusion:Tag {
+                                            tagName = 'input'
+                                            attributes.type = 'hidden'
+                                            attributes.name = '__csrfToken'
+                                            attributes.value = ${Sitegeist.Babbylon.Security.getCsrfToken()}
+                                        }
+
+
+                                        contentNode = Neos.Fusion:Tag {
+                                            tagName = 'input'
+                                            attributes.type = 'hidden'
+                                            attributes.name = 'contentNode'
+                                            attributes.value = ${q(item.node).property('_contextPath')}
+                                        }
+
+                                        targetCollection = Neos.Fusion:Tag {
+                                            tagName = 'input'
+                                            attributes.type = 'hidden'
+                                            attributes.name = 'targetCollection'
+                                            attributes.value = ${q(props.contentCollectionTarget).property('_contextPath')}
+                                        }
+
+                                        targetDocument = Neos.Fusion:Tag {
+                                            tagName = 'input'
+                                            attributes.type = 'hidden'
+                                            attributes.name = 'targetDocument'
+                                            attributes.value = ${q(props.documentNodeTarget).property('_contextPath')}
+                                        }
+
+                                        btn = Neos.Fusion:Tag {
+                                            tagName = 'button'
+                                            content = "translate"
+                                        }
+                                    }
+                                }
+
+                                children = Sitgeist.Babbylon:ContentCollectionOverview {
+                                    @if.isNotMissing = ${item.status != 'missing'}
+                                    documentNodeReference = ${props.documentNodeReference}
+                                    documentNodeTarget = ${props.documentNodeTarget}
+
+                                    contentCollectionReference = ${item.reference}
+                                    contentCollectionTarget = ${item.node}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            missing {
+                condition = true
+                renderer = 'no translation found'
+            }
+        }
+    }
+
 }

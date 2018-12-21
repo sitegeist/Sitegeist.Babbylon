@@ -3,6 +3,7 @@
 namespace Sitegeist\Babbylon\Eel;
 
 use Neos\ContentRepository\Domain\Model\NodeInterface;
+use Neos\ContentRepository\Domain\Model\Node;
 use Neos\Eel\ProtectedContextAwareInterface;
 
 class ContentHelper implements ProtectedContextAwareInterface
@@ -19,27 +20,32 @@ class ContentHelper implements ProtectedContextAwareInterface
         $translatedContentIdentifiers = [];
         $currentContentIdentifiers = [];
         $currentContentByIdentifier = [];
-
-        foreach ($currentContents as $currentContent) {
-            $currentContentIdentifiers[] = $currentContent->getIdentifier();
-            $currentContentByIdentifier[ $currentContent->getIdentifier() ] = $currentContent;
-        }
-
         $result = array();
 
-        foreach ($translatedContents as $translatedContent) {
-            $identifier = $translatedContent->getIdentifier();
-            if (in_array($identifier, $currentContentIdentifiers)) {
-                $result[] = [
-                    'status' => 'translated',
-                    'node' => $translatedContent
-                ];
-                $translatedContentIdentifiers[] = $identifier;
-            } else {
-                $result[] = [
-                    'status' => 'addition',
-                    'node' => $translatedContent
-                ];
+        if ($currentContents) {
+            foreach ($currentContents as $currentContent) {
+                $currentContentIdentifiers[] = $currentContent->getIdentifier();
+                $currentContentByIdentifier[$currentContent->getIdentifier()] = $currentContent;
+            }
+        }
+
+        if ($translatedContents) {
+            foreach ($translatedContents as $translatedContent) {
+                $identifier = $translatedContent->getIdentifier();
+                if (in_array($identifier, $currentContentIdentifiers)) {
+                    $result[] = [
+                        'status' => ($translatedContent instanceof Node && $translatedContent->dimensionsAreMatchingTargetDimensionValues()) ? 'translated' : 'fallback',
+                        'node' => $translatedContent,
+                        'reference' => $currentContentByIdentifier[$identifier]
+                    ];
+                    $translatedContentIdentifiers[] = $identifier;
+                } else {
+                    $result[] = [
+                        'status' => 'addition',
+                        'node' => $translatedContent,
+                        'reference' => null
+                    ];
+                }
             }
         }
 
@@ -47,7 +53,8 @@ class ContentHelper implements ProtectedContextAwareInterface
         foreach ($missingTranslationIdentifiers as $missingTranslationIdentifier) {
             $result[] = [
                 'status' => 'missing',
-                'node' => $currentContentByIdentifier[$missingTranslationIdentifier]
+                'node' => $currentContentByIdentifier[$missingTranslationIdentifier],
+                'reference' => null
             ];
         }
 
